@@ -33,30 +33,54 @@ ${CUSTOM_MANIFESTS}=    ${EMPTY}
 
 *** Keywords ***
 Install RHODS
-  [Arguments]  ${cluster_type}     ${image_url}
+  [Arguments]  ${cluster_type}     ${image_url}     ${install_plan_approval}    ${rhoai_version}=${EMPTY}    ${is_upgrade}=False
+  Log To Console    Start installing RHOAI with:\n cluster type: ${cluster_type}\n image_url: ${image_url}\n
+  ...    rhoai_version: ${rhoai_version}\n is_upgrade: ${is_upgrade}\n install_plan_approval: ${install_plan_approval}
   Install Kserve Dependencies
   Clone OLM Install Repo
   IF  "${PRODUCT}" == "ODH"
       ${csv_display_name} =    Set Variable    ${ODH_CSV_DISPLAY}
+      ${cs_name} =    Set Variable    community-operators
   ELSE
       ${csv_display_name} =    Set Variable    ${RHODS_CSV_DISPLAY}
+      ${cs_name} =    Set Variable    redhat-operators
   END
   IF  "${cluster_type}" == "selfmanaged"
       IF  "${TEST_ENV}" in "${SUPPORTED_TEST_ENV}" and "${INSTALL_TYPE}" == "CLi"
              Install RHODS In Self Managed Cluster Using CLI  ${cluster_type}     ${image_url}
       ELSE IF  "${TEST_ENV}" in "${SUPPORTED_TEST_ENV}" and "${INSTALL_TYPE}" == "OperatorHub"
-          ${file_path} =    Set Variable    tasks/Resources/RHODS_OLM/install/
-          Copy File    source=${file_path}cs_template.yaml    destination=${file_path}cs_apply.yaml
-          IF  "${PRODUCT}" == "ODH"
-              Run    sed -i'' -e 's/<CATALOG_SOURCE>/community-operators/' ${file_path}cs_apply.yaml
+          IF  "${is_upgrade}" == "False"
+              ${file_path} =    Set Variable    tasks/Resources/RHODS_OLM/install/
+              ${starting_csv} =  Set Variable    ""
+              IF  "${rhoai_version}" != "${EMPTY}"
+                  Log To Console    Start installing ${csv_display_name} with version: ${rhoai_version}
+                  ${starting_csv} =  Set Variable    ${OPERATOR_NAME}.${rhoai_version}
+              END
+              Copy File    source=${file_path}cs_template.yaml    destination=${file_path}cs_apply.yaml
+              Run    sed -i'' -e 's/<CATALOG_SOURCE>/${cs_name}/' ${file_path}cs_apply.yaml
+              Run    sed -i'' -e 's/<OPERATOR_NAME>/${OPERATOR_NAME}/' ${file_path}cs_apply.yaml
+              Run    sed -i'' -e 's/<OPERATOR_NAMESPACE>/${OPERATOR_NAMESPACE}/' ${file_path}cs_apply.yaml
+              Run    sed -i'' -e 's/<UPDATE_CHANNEL>/${UPDATE_CHANNEL}/' ${file_path}cs_apply.yaml
+              Run    sed -i'' -e 's/<STARTING_CSV>/${starting_csv}/' ${file_path}cs_apply.yaml
+              Run    sed -i'' -e 's/<INSTALL_PLAN_APPROVAL>/${install_plan_approval}/' ${file_path}cs_apply.yaml
+              Oc Apply   kind=List   src=${file_path}cs_apply.yaml
+              Remove File    ${file_path}cs_apply.yml
           ELSE
-              Run    sed -i'' -e 's/<CATALOG_SOURCE>/redhat-operators/' ${file_path}cs_apply.yaml
+              ${patch_update_channel_status} =    Run And Return Rc   oc patch subscription ${OPERATOR_NAME} -n ${OPERATOR_NAMESPACE} --type='json' -p='[{"op": "replace", "path": "/spec/channel", "value": ${UPDATE_CHANNEL}}]'    #robocop:disable
+              Should Be Equal As Integers    ${patch_update_channel_status}     0   msg=Error while changing the UPDATE_CHANNEL
+              Sleep  30s      reason=wait for thirty seconds until old CSV is removed and new one is ready
           END
-          Run    sed -i'' -e 's/<OPERATOR_NAME>/${OPERATOR_NAME}/' ${file_path}cs_apply.yaml
-          Run    sed -i'' -e 's/<OPERATOR_NAMESPACE>/${OPERATOR_NAMESPACE}/' ${file_path}cs_apply.yaml
-          Run    sed -i'' -e 's/<UPDATE_CHANNEL>/${UPDATE_CHANNEL}/' ${file_path}cs_apply.yaml
-          Oc Apply   kind=List   src=${file_path}cs_apply.yaml
-          Remove File    ${file_path}cs_apply.yml
+          IF  "${rhoai_version}" != "${EMPTY}"
+              Wait Until Keyword Succeeds    3m    5s    Check For Resource Exist In Command Output    oc get installplans -n ${OPERATOR_NAMESPACE}
+              ${install_plan}=    Run   oc get subscription ${OPERATOR_NAME} -n ${OPERATOR_NAMESPACE} -o json | jq '.status.installplan.name'
+              Log To Console    Start approving the installplan: ${install_plan}...
+              ${patch_status} =    Run And Return Rc    oc patch installplan ${install_plan} -n ${OPERATOR_NAMESPACE} -p '{"spec":{"approved": true}}' --type=merge
+              IF    ${patch_status} == 0
+                  Log To Console    Approving the installplan ${install_plan} successfully!!
+              ELSE
+                  Log To Console    Failed to approving the installplan ${install_plan}
+              END
+          END
       ELSE
            FAIL    Provided test environment and install type is not supported
       END
@@ -190,9 +214,14 @@ Verify Builds In redhat-ods-applications
 
 Clone OLM Install Repo
   [Documentation]   Clone OLM git repo
-  ${return_code}    ${output}     Run And Return Rc And Output    git clone ${RHODS_OSD_INSTALL_REPO} ${EXECDIR}/${OLM_DIR}
-  Log To Console    ${output}
-  Should Be Equal As Integers   ${return_code}   0
+  ${status} =   Run Keyword And Return Status    Directory Should Exist   ${EXECDIR}/${OLM_DIR}
+  IF    ${status}
+      Log To Console     "The directory ${EXECDIR}/${OLM_DIR} already exist, skipping clone of the repo."
+  ELSE
+      ${return_code}    ${output}     Run And Return Rc And Output    git clone ${RHODS_OSD_INSTALL_REPO} ${EXECDIR}/${OLM_DIR}
+      Log To Console    ${output}
+      Should Be Equal As Integers   ${return_code}   0
+  END
 
 Install RHODS In Self Managed Cluster Using CLI
   [Documentation]   Install rhods on self managed cluster using cli
