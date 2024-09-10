@@ -167,7 +167,7 @@ Get RHODS Version
             ${RHODS_VERSION}=  Run  oc get csv -n ${OPERATOR_NAMESPACE} | grep "opendatahub" | awk -F ' {2,}' '{print $3}'
         END
     END
-    Log  Product:${PRODUCT} Version:${RHODS_VERSION}
+    Log To Console    Product:${PRODUCT} Version:${RHODS_VERSION}
     RETURN  ${RHODS_VERSION}
 
 #robocop: disable: line-too-long
@@ -198,6 +198,13 @@ Wait Until Csv Is Ready
     ...    oc wait --timeout\=${timeout} --for jsonpath\='{.status.phase}'\=Succeeded csv -n ${operators_namespace} ${csv_created.stdout}    shell=yes
     IF    ${csv_ready.rc} == ${0}    BREAK
   END
+
+Check For Resource Exist In Command Output
+    [Arguments]    ${command}
+    ${result}=    Run Process    ${command}    shell=True    stdout=PIPE
+    Log To Console    The Result of Check For Resource Exist In Command Output is: ${result.stdout} RC: ${result.rc}
+    Should Not Be Empty    ${result.stdout}
+    Should Not Contain    ${result.stdout}    'No resources found'
 
 Get Cluster ID
     [Documentation]     Retrieves the ID of the currently connected cluster
