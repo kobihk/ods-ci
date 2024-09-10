@@ -48,6 +48,13 @@ Install RHODS
              Install RHODS In Self Managed Cluster Using CLI  ${cluster_type}     ${image_url}
       ELSE IF  "${TEST_ENV}" in "${SUPPORTED_TEST_ENV}" and "${INSTALL_TYPE}" == "OperatorHub"
           ${file_path} =    Set Variable    tasks/Resources/RHODS_OLM/install/
+          ${starting_csv} =  Set Variable    ""
+          ${install_plan_approval} =  Set Variable    Automatic
+          IF  "${RHOAI_PREV_VERSION}" != ""
+              Log To Console    Start installing ${csv_display_name} with previous version: ${RHOAI_PREV_VERSION}
+              ${starting_csv} =  Set Variable    ${OPERATOR_NAME}.${RHOAI_PREV_VERSION}
+              ${install_plan_approval} =  Set Variable    Manual
+          END
           Copy File    source=${file_path}cs_template.yaml    destination=${file_path}cs_apply.yaml
           IF  "${PRODUCT}" == "ODH"
               Run    sed -i'' -e 's/<CATALOG_SOURCE>/community-operators/' ${file_path}cs_apply.yaml
@@ -57,8 +64,21 @@ Install RHODS
           Run    sed -i'' -e 's/<OPERATOR_NAME>/${OPERATOR_NAME}/' ${file_path}cs_apply.yaml
           Run    sed -i'' -e 's/<OPERATOR_NAMESPACE>/${OPERATOR_NAMESPACE}/' ${file_path}cs_apply.yaml
           Run    sed -i'' -e 's/<UPDATE_CHANNEL>/${UPDATE_CHANNEL}/' ${file_path}cs_apply.yaml
+          Run    sed -i'' -e 's/<STARTING_CSV>/${starting_csv}/' ${file_path}cs_apply.yaml
+          Run    sed -i'' -e 's/<INSTALL_PLAN_APPROVAL>/${install_plan_approval}/' ${file_path}cs_apply.yaml
           Oc Apply   kind=List   src=${file_path}cs_apply.yaml
           Remove File    ${file_path}cs_apply.yml
+          IF  "${RHOAI_PREV_VERSION}" != ""
+              Wait Until Keyword Succeeds    3 min    5 sec    Check For Resource Exist In Command Output    oc get installplans -n ${OPERATOR_NAMESPACE}
+              ${install_plan}=    Run   oc get installplans -n ${OPERATOR_NAMESPACE} | grep -v NAME | awk '{print $1}'
+              Log To Console    Start approving the installplan: ${install_plan}...
+              ${patch_status} =    Run And Return Rc    oc patch installplan ${install_plan} -n ${OPERATOR_NAMESPACE} -p '{"spec":{"approved": true}}' --type=merge
+              IF    ${patch_status} == 0
+                  Log To Console    Approving the installplan  ${install_plan} successfully!!
+              ELSE
+                  Log To Console    Failed to approving the installplan  ${install_plan}
+              END
+          END
       ELSE
            FAIL    Provided test environment and install type is not supported
       END
@@ -206,6 +226,11 @@ Verify Builds In redhat-ods-applications
 
 Clone OLM Install Repo
   [Documentation]   Clone OLM git repo
+  ${status} =   Run Keyword And Return Status    Directory Should Exist   ${EXECDIR}/${OLM_DIR}
+  IF    ${status}
+      Log To Console     "The directory ${EXECDIR}/${OLM_DIR} already exist, removing it."
+      Remove Directory        ${EXECDIR}/${OLM_DIR}    recursive=True
+  END
   ${return_code}    ${output}     Run And Return Rc And Output    git clone ${RHODS_OSD_INSTALL_REPO} ${EXECDIR}/${OLM_DIR}
   Log To Console    ${output}
   Should Be Equal As Integers   ${return_code}   0
