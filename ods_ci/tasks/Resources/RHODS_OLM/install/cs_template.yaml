@@ -13,10 +13,11 @@ items:
           namespace: redhat-ods-operator
       spec:
           channel: <UPDATE_CHANNEL>
-          installPlanApproval: Automatic
+          installPlanApproval: <INSTALL_PLAN_APPROVAL>
           name: rhods-operator
           source: redhat-operators
           sourceNamespace: openshift-marketplace
+          startingCSV: <STARTING_CSV>
   -   apiVersion: operators.coreos.com/v1
       kind: OperatorGroup
       metadata:
