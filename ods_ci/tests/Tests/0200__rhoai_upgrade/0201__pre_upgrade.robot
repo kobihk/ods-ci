@@ -45,14 +45,14 @@ ${DW_PROJECT_CREATED}=    False
 *** Test Cases ***
 Set PVC Size Via UI
     [Documentation]    Sets a Pod toleration via the admin UI
-    [Tags]  Upgrade
+    [Tags]  Upgrade    PreUpgradeFailed
     [Setup]    Begin Web Test
     Set PVC Value In RHODS Dashboard    ${S_SIZE}
     [Teardown]   Dashboard Test Teardown
 
 Set Culler Timeout
     [Documentation]    Sets a culler timeout via the admin UI
-    [Tags]  Upgrade
+    [Tags]  Upgrade    PreUpgradeFailed
     [Setup]    Begin Web Test
     Modify Notebook Culler Timeout     ${CUSTOM_CULLER_TIMEOUT}
     [Teardown]   Dashboard Test Teardown
@@ -70,7 +70,7 @@ Setting Pod Toleration Via UI
 Verify RHODS Accept Multiple Admin Groups And CRD Gets Updates
     [Documentation]    Verify that users can set multiple admin groups and
     ...                check OdhDashboardConfig CRD gets updated according to Admin UI
-    [Tags]  Upgrade
+    [Tags]  Upgrade    PreUpgradeFailed
     [Setup]    Begin Web Test
     Launch Dashboard And Check User Management Option Is Available For The User   ${TEST_USER.USERNAME}   ${TEST_USER.PASSWORD}  ${TEST_USER.AUTH_TYPE}  #robocop: disable
     Clear User Management Settings
@@ -90,7 +90,7 @@ Verify User Can Disable The Runtime
     Disable Model Serving Runtime Using CLI   namespace=redhat-ods-applications
 
 Verify Model Can Be Deployed Via UI For Upgrade
-    [Tags]  Upgrade
+    [Tags]  Upgrade    PreUpgradeFailed
     [Setup]    Begin Web Test
     ${runtime_pod_name} =    Replace String Using Regexp    string=${RUNTIME_NAME}    pattern=\\s    replace_with=-
     ${runtime_pod_name} =    Convert To Lower Case    ${runtime_pod_name}
@@ -118,7 +118,7 @@ Verify Model Can Be Deployed Via UI For Upgrade
     ...    label_selector=name=modelmesh-serving-${runtime_pod_name}
 
 Verify User Can Deploy Custom Runtime For Upgrade
-    [Tags]  Upgrade
+    [Tags]  Upgrade    PreUpgradeFailed
     Create Custom Serving Runtime Using Template By CLI   tests/Resources/Files/caikit_runtime_template.yaml
     Begin Web Test
     Menu.Navigate To Page    Settings    Serving runtimes
@@ -128,7 +128,7 @@ Verify User Can Deploy Custom Runtime For Upgrade
 
 Verify Distributed Workload Metrics Resources By Creating Ray Cluster Workload
     [Documentation]    Creates the Ray Cluster and verify resource usage
-    [Tags]    Upgrade
+    [Tags]    Upgrade    PreUpgradeFailed
     [Setup]    Prepare Codeflare-SDK Test Setup
     ${PRJ_UPGRADE}    Set Variable    test-ns-rayupgrade
     ${JOB_NAME}    Set Variable    mnist
@@ -182,7 +182,7 @@ Data Science Pipelines Pre Upgrade Configuration
 
 Model Registry Pre Upgrade Set Up
     [Documentation]    Creates a Model Registry instance and registers a model/version
-    [Tags]             Upgrade    ModelRegistryUpgrade
+    [Tags]             Upgrade    ModelRegistryUpgrade    PreUpgradeFailed
     Model Registry Pre Upgrade Scenario
 
 
