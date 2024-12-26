@@ -155,7 +155,7 @@ Get RHODS Version
             ${RHODS_VERSION}=  Run  oc get csv -n ${OPERATOR_NAMESPACE} | grep "opendatahub" | awk -F ' {2,}' '{print $3}'
         END
     END
-    Log To Console    Product:${PRODUCT} Version:${RHODS_VERSION}
+    Log    Product:${PRODUCT} Version:${RHODS_VERSION}    console=yes
     RETURN  ${RHODS_VERSION}
 
 #robocop: disable: line-too-long
@@ -182,7 +182,7 @@ Wait Until Csv Is Ready
   ...    on_limit_message=${timeout} Timeout exceeded waiting for CSV '${display_name}' to be created
     Sleep  ${check_interval}
     ${csv_created}=    Run Process    oc get csv --no-headers -n ${operators_namespace} | awk '/${display_name}/ {print \$1}'    shell=yes
-    Log To Console    The Result of csv_created Output is: ${csv_created.stdout} RC: ${csv_created.rc}
+    Log    The Result of csv_created Output is: ${csv_created.stdout} RC: ${csv_created.rc}    console=yes
     IF  '$csv_created.stdout' == '${EMPTY}'    CONTINUE
     #  In case of upgrade there are 2 operators, we need to wait until only one will be available
     ${lines}=     Split String    ${csv_created.stdout}    \n
@@ -190,7 +190,7 @@ Wait Until Csv Is Ready
     IF  ${line_count} > 1    CONTINUE
     ${csv_ready}=    Run Process
     ...    oc wait --timeout\=${timeout} --for jsonpath\='{.status.phase}'\=Succeeded csv -n ${operators_namespace} ${csv_created.stdout}    shell=yes
-    Log To Console    The Result of csv_ready Output is: ${csv_ready.stdout} RC: ${csv_ready.rc}
+    Log    The Result of csv_ready Output is: ${csv_ready.stdout} RC: ${csv_ready.rc}    console=yes
     IF    ${csv_ready.rc} == ${0}    BREAK
   END
 

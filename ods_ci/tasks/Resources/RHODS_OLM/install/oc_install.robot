@@ -37,8 +37,8 @@ ${rhoai_version}                ${EMPTY}
 *** Keywords ***
 Install RHODS
   [Arguments]  ${cluster_type}     ${image_url}     ${install_plan_approval}    ${rhoai_version}=${EMPTY}    ${is_upgrade}=False
-  Log To Console    Start installing RHOAI with:\n\- cluster type: ${cluster_type}\n\- image_url: ${image_url}\n\- update_channel: ${UPDATE_CHANNEL}
-  Log To Console    \- rhoai_version: ${rhoai_version}\n\- is_upgrade: ${is_upgrade}\n\- install_plan_approval: ${install_plan_approval}
+  Log    Start installing RHOAI with:\n\- cluster type: ${cluster_type}\n\- image_url: ${image_url}\n\- update_channel: ${UPDATE_CHANNEL}    console=yes
+  Log    \- rhoai_version: ${rhoai_version}\n\- is_upgrade: ${is_upgrade}\n\- install_plan_approval: ${install_plan_approval}    console=yes
   Assign Vars According To Product
   Install Kserve Dependencies
   Clone OLM Install Repo
@@ -50,7 +50,7 @@ Install RHODS
               ${file_path} =    Set Variable    tasks/Resources/RHODS_OLM/install/
               ${starting_csv} =  Set Variable    ""
               IF  "${rhoai_version}" != "${EMPTY}"
-                  Log To Console    Start installing "${OPERATOR_NAME}" with version: ${rhoai_version}
+                  Log    Start installing "${OPERATOR_NAME}" with version: ${rhoai_version}    console=yes
                   ${starting_csv} =  Set Variable    ${OPERATOR_DEPLOYMENT_NAME}.${rhoai_version}
               END
               Copy File    source=${file_path}cs_template.yaml    destination=${file_path}cs_apply.yaml
@@ -88,8 +88,8 @@ Install RHODS
 
 Verify RHODS Installation
   Set Global Variable    ${DASHBOARD_APP_NAME}    ${PRODUCT.lower()}-dashboard
-  Log  Verifying RHODS installation  console=yes
-  Log To Console    Waiting for all RHODS resources to be up and running
+  Log    Verifying RHODS installation    console=yes
+  Log    Waiting for all RHODS resources to be up and running    console=yes
   Wait For Pods Numbers  1
   ...                   namespace=${OPERATOR_NAMESPACE}
   ...                   label_selector=name=${OPERATOR_DEPLOYMENT_NAME}
@@ -205,10 +205,10 @@ Clone OLM Install Repo
   [Documentation]   Clone OLM git repo
   ${status} =   Run Keyword And Return Status    Directory Should Exist   ${EXECDIR}/${OLM_DIR}
   IF    ${status}
-      Log To Console     "The directory ${EXECDIR}/${OLM_DIR} already exist, skipping clone of the repo."
+      Log    "The directory ${EXECDIR}/${OLM_DIR} already exist, skipping clone of the repo."    console=yes
   ELSE
       ${return_code}    ${output}     Run And Return Rc And Output    git clone ${RHODS_OSD_INSTALL_REPO} ${EXECDIR}/${OLM_DIR}
-      Log To Console    ${output}
+      Log    ${output}    console=yes
       Should Be Equal As Integers   ${return_code}   0
   END
 

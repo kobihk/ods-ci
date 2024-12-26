@@ -293,7 +293,7 @@ Wait For Installplan And Approve It
     [Documentation]    Wait for the operator's installplan to appear then approve it in case of Manual installplan approval
     [Arguments]    ${namespace}    ${operator_name}    ${operator_version}=${EMPTY}
     ${csv} =    Evaluate    '${operator_name}.${operator_version}' if '${operator_version}' else '${operator_name}'
-    Log To Console    The csv is: ${csv}
+    Log    The csv is: ${csv}    console=yes
     Wait Until Keyword Succeeds    10m    5s    Check If Resource Exists By Command Output    oc get installplans -n ${namespace} -o yaml | grep "${csv}"
     ${installplan_name}=    Run   oc get subscription ${operator_name} -n ${namespace} -o json | jq '.status.installplan.name'
     IF    "${operator_version}" != "${EMPTY}"
@@ -305,13 +305,13 @@ Wait For Installplan And Approve It
     END
     ${installplan_approval}=     Get Resource Attribute      ${namespace}
     ...      InstallPlan       ${installplan_name}        .spec.approval
-    Log To Console    The installplan approval for: ${installplan_name} is ${installplan_approval}
+    Log    The installplan approval for: ${installplan_name} is ${installplan_approval}    console=yes
     IF    "${installplan_approval}" == "Manual"
-        Log To Console    Start approving the installplan: ${installplan_name}...
+        Log    Start approving the installplan: ${installplan_name}...    console=yes
         ${patch_status} =    Run And Return Rc    oc patch installplan ${installplan_name} -n ${namespace} -p '{"spec":{"approved": true}}' --type=merge
         IF    ${patch_status} == 0
-          Log To Console    Approving the installplan ${installplan_name} successfully!!
+          Log    Approving the installplan ${installplan_name} successfully!!    console=yes
         ELSE
-          Log To Console    Failed to approving the installplan ${installplan_name}
+          FAIL    Failed to approving the installplan ${installplan_name}
         END
     END
