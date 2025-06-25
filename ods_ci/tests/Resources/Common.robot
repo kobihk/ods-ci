@@ -218,14 +218,12 @@ Wait Until Csv Is Ready
     IF    ${csv_ready.rc} == ${0}    BREAK
   END
 
-Check If Resource Exists By Command Output
-    [Documentation]     Check if resource exists with specific command,
-    ...    Fail if the output is empty or contains the string 'No resources found'
-    [Arguments]    ${command}
-    ${result}=    Run Process    ${command}    shell=True    stdout=PIPE
-    Log To Console    The Result of Check If Resource Exists By Command Output is: ${result.stdout} RC: ${result.rc}
-    Should Not Be Empty    ${result.stdout}
-    Should Not Contain    ${result.stdout}    'No resources found'
+Search Install Plan
+    [Documentation]    Search for an install plan by CSV name and namespace
+    [Arguments]    ${csv_name}    ${namespace}
+    ${rc}  ${out}=    Run and Return Rc and Output      oc get installplan -n ${namespace} -ojson | jq '.items[].spec.clusterServiceVersionNames[] | select(. | contains("${csv_name}"))'
+    Log    Waiting for Search Install Plan : ${csv_name} in ${namespace}    console=yes
+    Should Not Be Empty    ${out}
 
 Get Cluster ID
     [Documentation]     Retrieves the ID of the currently connected cluster

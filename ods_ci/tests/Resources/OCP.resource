@@ -342,8 +342,8 @@ Wait For Installplan And Approve It
     [Documentation]    Wait for the operator's installplan to appear then approve it in case of Manual installplan approval
     [Arguments]    ${namespace}    ${operator_name}     ${subscription_name}    ${operator_version}=${EMPTY}
     ${csv} =    Evaluate    '${operator_name}.${operator_version}' if '${operator_version}' else '${operator_name}'
-    Log    The csv is: ${csv}    console=yes
-    Wait Until Keyword Succeeds    10m    5s    Check If Resource Exists By Command Output    oc get installplans -n ${namespace} -o yaml | grep "${csv}"
+    Log    The csv is: ${csv}, operator_version: ${operator_version}, operator_name: ${operator_name}, subscription_name: ${subscription_name}     console=yes
+    Wait Until Keyword Succeeds    10m    5s    Search Install Plan    ${csv}    ${namespace}
     ${installplan_name}=    Run   oc get subscription ${subscription_name} -n ${namespace} -o json | jq '.status.installplan.name'
     IF    "${operator_version}" != "${EMPTY}"
         ${installplan_version_exist}=    Run And Return Rc   oc get installplan -n ${namespace} | grep "${operator_version}"
