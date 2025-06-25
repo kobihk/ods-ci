@@ -104,7 +104,7 @@ Install RHODS
       ELSE IF  "${TEST_ENV}" in "${SUPPORTED_TEST_ENV}" and "${INSTALL_TYPE}" == "OperatorHub"
           IF  "${is_upgrade}" == "False"
               ${file_path} =    Set Variable    tasks/Resources/RHODS_OLM/install/
-              ${starting_csv} =  Set Variable    ${EMPTY}
+              ${starting_csv} =  Set Variable    ""
               IF  "${rhoai_version}" != "${EMPTY}"
                   Log    Start installing "${OPERATOR_NAME}" with version: ${rhoai_version}    console=yes
                   ${starting_csv} =  Set Variable    ${OPERATOR_DEPLOYMENT_NAME}.${rhoai_version}
@@ -144,7 +144,9 @@ Install RHODS
       END
   END
   Wait Until Csv Is Ready    display_name=${OPERATOR_NAME}    operators_namespace=${OPERATOR_NAMESPACE}
-  Add StartingCSV To Subscription
+  IF  "${is_upgrade}" == "False"
+      Add StartingCSV To Subscription
+  END
 
 Add StartingCSV To Subscription
     [Documentation]    Retrieves current RHOAI version from subscription status and add

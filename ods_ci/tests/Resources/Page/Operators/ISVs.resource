@@ -36,6 +36,18 @@ Install ISV Operator From OperatorHub Via CLI    # robocop: disable
     ${rc}    ${out}=    Run And Return Rc And Output    sed -i'' -e "s/<CATALOG_SOURCE>/${catalog_source_name}/g" ${operator_sub_filepath}    # robocop: disable
     ${rc}    ${out}=    Run And Return Rc And Output    sed -i'' -e "s/<CS_NAMESPACE>/${cs_namespace}/g" ${operator_sub_filepath}    # robocop: disable
     Oc Apply    kind=Subscription    src=${operator_sub_filepath}
+    # TODO: Remove this once the operator_name will be tempo-operator
+    IF  "${operator_name}" == "tempo-product"
+        ${operator_name} =    Set Variable    tempo-operator
+    END
+    # TODO: Remove this once the operator_name will be opentelemetry-operator
+    IF  "${operator_name}" == "opentelemetry-product"
+        ${operator_name} =    Set Variable    opentelemetry-operator
+    END
+    # TODO: Remove this once the operator_name will be openshift-custom-metrics-autoscaler-operator
+    IF  "${operator_name}" == "openshift-custom-metrics-autoscaler-operator"
+        ${operator_name} =    Set Variable    custom-metrics-autoscaler
+    END
     Wait For Installplan And Approve It    ${namespace}    ${operator_name}    ${subscription_name}
     Wait Until Keyword Succeeds    1 min    0 sec
     ...    Is Resource Present    Subscription    ${subscription_name}     ${namespace}    ${IS_PRESENT}
