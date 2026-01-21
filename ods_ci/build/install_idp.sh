@@ -249,10 +249,15 @@ function set_ldap_users(){
 }
 
 function create_groups_and_assign_users(){
-  oc adm groups new rhods-admins
-  oc adm groups new rhods-users
-  oc adm groups new rhods-noaccess
-  oc adm groups new dedicated-admins
+  # Check if groups.user.openshift.io is available (not available on OIDC clusters)
+  if ! oc api-resources | grep -q "groups.user.openshift.io"; then
+    echo "WARN: groups.user.openshift.io not available (OIDC cluster?). Skipping group creation."
+    return 0
+  fi
+  oc adm groups new rhods-admins 2>/dev/null || echo "group rhods-admins already exists"
+  oc adm groups new rhods-users 2>/dev/null || echo "group rhods-users already exists"
+  oc adm groups new rhods-noaccess 2>/dev/null || echo "group rhods-noaccess already exists"
+  oc adm groups new dedicated-admins 2>/dev/null || echo "group dedicated-admins already exists"
   for prefix in "${prefixes[@]}"; do
     groups=$(jq -r --arg idpname ldap --arg pref $prefix '.[][$idpname].groups_map[$pref][]' configs/templates/user_config.json)
     echo $groups
